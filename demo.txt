@@ -1,0 +1,9 @@
+环境部署
+首先确保 python环境搭建成功
+chromedriver已经下载到 本地
+在vscode中确保安装好 python扩展
+然后，virtualenv搭建成功(准备 selenium_env虚拟python环境)
+
+开始创建 demo练习
+书写Python文件
+激活 selenium_env环境,运行python代码
