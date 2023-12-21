@@ -319,8 +319,29 @@ if(__name__=='__main__'):
     # 等待第二次 弹出框的出现
     time.sleep(3)
     # 再次对 弹出框 进行确认
+    waitUtilWebdriver(web_driver,'alert','')
     popupWindowAccept(web_driver)
-    while(input()=='exit'):
+
+    selenium_html_javascript = r'''
+    selenium_html_element = document.createElement("div")
+    selenium_html_element.style = "position:fixed;left:60px;top:60px;width:120px;height:60px;line-height:60px;text-align:center;color:red;background:blue;border:1px solid black;"
+    selenium_html_element.innerText = 'hello'
+    selenium_html_element.id = "newChild"
+    let el = document.querySelector("body")
+    el.append(selenium_html_element)
+    '''
+
+    excuteJavascript(web_driver,selenium_html_javascript)
+    selenium_html_element = waitUtilElement(web_driver,'id','newChild','clickable')
+    time.sleep(3)
+    selenium_html_element.text = 'world'
+    # selenium_html_element.send_keys('  !')
+    # time.sleep(3)
+    # selenium_html_element.send_keys('')
+    # time.sleep(3)
+    # selenium_html_element.send_keys('end')
+    while(input()!='exit'):
+        print('hello exit ')
         web_driver.quit()
     # # 关闭对话框警告
     # popupWindowAccept(web_driver)

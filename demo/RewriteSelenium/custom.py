@@ -68,62 +68,52 @@ def initWebDriver(driverPath: str,isMobile: bool = False,deviceName: str = "iPho
 # tag[attribute^="keyword"] 表示：tag标签里面的属性值以keyword关键字开头的所有tag标签元素
 # tag[attribute$="keyword"] 表示：tag标签里面的属性值以keyword关键字结尾的所有tag标签元素
 # tag[attribute1="keyword"][attribute1="keyword"] 表示：tag标签里面的属性1为keyword关键字并且属性2为keyword关键字的tag标签元素
-def getElement(webdriver: WebDriver,type: str = 'id',value: str = '',is_list:bool = False) -> Union[WebElement,List[WebElement]]:
+def getElement(webdriver: WebDriver,selector: str = 'id',selector_value: str = '',is_list:bool = False) -> Union[WebElement,List[WebElement]]:
     try:
         # id 选择器（通过id获取到的元素有且只有一个）
-        if(type == 'id'):
-            return webdriver.find_element(By.ID, value)
-        elif(type == 'classname'):
+        if(selector == 'id'):
+            return webdriver.find_element(By.ID, selector_value)
+        elif(selector == 'classname'):
             # 类名选择器
             # 如果是获取多个元素，即 返回多个元素列表
             if(is_list):
-                return webdriver.find_elements(By.CLASS_NAME, value)
+                return webdriver.find_elements(By.CLASS_NAME, selector_value)
             else:
-                return webdriver.find_element(By.CLASS_NAME, value)
-        elif(type == 'tagname'):
+                return webdriver.find_element(By.CLASS_NAME, selector_value)
+        elif(selector == 'tagname'):
             # 标签选择器
             # 如果是获取多个元素，即 返回多个元素列表
             if(is_list):
-                return webdriver.find_elements(By.TAG_NAME, value)
+                return webdriver.find_elements(By.TAG_NAME, selector_value)
             else:
-                return webdriver.find_element(By.TAG_NAME, value)
-        elif(type == 'css'):
+                return webdriver.find_element(By.TAG_NAME, selector_value)
+        elif(selector == 'css'):
             # css选择器
             # 如果是获取多个元素，即 返回多个元素列表
             if(is_list):
-                return webdriver.find_elements(By.CSS_SELECTOR, value)
+                return webdriver.find_elements(By.CSS_SELECTOR, selector_value)
             else:
-                return webdriver.find_element(By.CSS_SELECTOR, value)
-        elif(type == 'xpath'):
+                return webdriver.find_element(By.CSS_SELECTOR, selector_value)
+        elif(selector == 'xpath'):
             # xpath选择器
             # 如果是获取多个元素，即 返回多个元素列表
             if(is_list):
-                return webdriver.find_elements(By.XPATH, value)
+                return webdriver.find_elements(By.XPATH, selector_value)
             else:
-                return webdriver.find_element(By.XPATH, value)
+                return webdriver.find_element(By.XPATH, selector_value)
         else:
             # 不是以上 选项直接返回空
             return None
     except NoSuchElementException as exec:
         print(f'except: {exec} \n')
         excuteJavascript(webdriver,'debugger')
-        print(f'没找到{type}选择器对应{value} 元素对象或集合\n输入exit 可退出程序')
+        print(f'没找到{selector}选择器对应{selector_value} 元素对象或集合\n输入exit 可退出程序')
         while(input()=='exit'):
             webdriver.quit()
         return None
 
-# 对元素内容 进行操作
-# element.send_keys() 以追加的方式向元素 添加内容
-# element.clear() 清除元素中的内容
-
-# 鼠标悬浮 在元素上
-def mouseoverElement(webdriver: WebDriver,element: WebElement) -> None:
-    action_chains = ActionChains(webdriver)
-    # 鼠标移动到 元素上
-    action_chains.move_to_element(element).perform()
-
 # 获取元素内容
-# 元素文本 element.text()
+# 元素文本 element.text
 # 输入框的值 element.get_attribute('value')
 # outerHTML  整个元素对应的HTML文本内容
 # innerHTML  元素 内部 的HTML文本内容
@@ -133,6 +123,108 @@ def mouseoverElement(webdriver: WebDriver,element: WebElement) -> None:
 # class  类名
 # 等等
 # element.get_attribute(attribute)
+
+# 对元素内容 进行操作（采用 执行 javascript的方式实现）
+# 比如：设置指定元素的属性  该方法默认使用 css selector的方式进行获取元素
+def setElement(webdriver: WebDriver,selector_value: str,modify_type: str,modify_key: str,modify_value: str) -> None:
+    setelement_script = f'''
+    let el = document.queryselector('{selector_value}')
+    '''
+    if(modify_type == 'attr'):
+        setelement_script = setelement_script + f'''
+        el.setAttribute('{modify_key}','{modify_value}')
+        '''
+    elif(modify_type == 'style'):
+        setelement_script = setelement_script + f'''
+        el.style.{modify_key} = {modify_value}
+        '''
+    elif(modify_type == 'id'):
+        setelement_script = setelement_script + f'''
+        el.id = '{modify_key}'
+        '''
+    elif(modify_type == 'class'):
+        if(modify_key == 'remove'):
+            setelement_script = setelement_script + f'''
+            el.classList.remove('{modify_value}')
+            '''
+        elif(modify_key == 'add'):
+            setelement_script = setelement_script + f'''
+            el.classList.add('{modify_value}')
+            '''
+    elif(modify_type == 'element'):
+        if(modify_key == 'text'):
+            setelement_script = setelement_script + f'''
+            el.innerText = '{modify_value}'
+            '''
+        elif(modify_key == 'inner_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+            el.innerHTML = '{modify_value}'
+            '''
+        elif(modify_key == 'outer_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+            el.outerHTML = '{modify_value}'
+            '''
+    excuteJavascript(webdriver,setelement_script)
+
+# 对元素内容 进行操作（采用 执行 javascript的方式实现）
+# 比如：设置指定元素的属性  该方法默认使用 css selector的方式进行获取元素
+# /表示 前方参数不能以关键字参数进行传参 *后面参数 必须以关键字传参 
+# attrs styles class_list event_list 可传可不传
+def createElement(webdriver: WebDriver,tagname: str,/,*,attrs: List[Dict[str,str]] = [],styles: List[Dict[str,str]] = None,id: str = None,class_list: List[str] = None,event_list: list[Dict[str,str]] = None) -> None:
+    create_element_script = f'''
+    let el = document.createElement('{tagname}')
+    '''
+    # 添加属性
+    if(attrs):
+        for attr in attrs:
+            create_element_script = create_element_script + f'''
+            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            '''
+    # 添加id属性
+    if(id):
+        create_element_script = create_element_script + f'''
+            el.id = '{id}'
+            '''  
+    # 添加类名
+    if(class_list):
+        for class_name in class_list:
+            create_element_script = create_element_script + f'''
+            el.classList.add('{class_name}')
+            '''
+    # 添加样式
+    if(class_list):
+        for attr in attrs:
+            create_element_script = create_element_script + f'''
+            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            '''
+
+    # 为元素添加事件
+    if(class_list):
+        for attr in attrs:
+            create_element_script = create_element_script + f'''
+            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            '''
+    # addEventListener
+    excuteJavascript(webdriver,create_element_script)
+
+# 挂载元素（将 元素挂载到 元素容器里）
+def mountElement(webdriver,mount_container_element: WebElement = None,mount_element: WebElement = None):
+    if(mount_element and mount_container_element):
+        webdriver.execute_script('arguments[0].append(arguments[1])',mount_container_element,mount_element)
+
+
+# 对输入框进行操作
+# element.send_keys() 以追加的方式向元素 添加内容
+# element.clear() 清除元素中的内容
+
+# 鼠标悬浮 在元素上
+def mouseoverElement(webdriver: WebDriver,element: WebElement) -> None:
+    action_chains = ActionChains(webdriver)
+    # 鼠标移动到 元素上
+    action_chains.move_to_element(element).perform()
+
 
 # 切换至 外部主html文件中(即：切换到原来的html文件中)
 def switchToDefalutHtml(webdriver: WebDriver) -> None:
@@ -240,56 +332,41 @@ def inputPopupWindowContent(webdriver: WebDriver,content: str) -> None:
 
 
 # 等待 webdriver 的某个条件符合时
-# 等待 window alert 
-def waitUtilWebdriver(webdriver: WebDriver,key:str,value:str,max_wait_time:int=10) -> WebDriver:
+# 等待 window alert 、窗口 title url
+def waitUtilWebdriver(webdriver: WebDriver,condition:str,condition_value:str,max_wait_time:int=10) -> WebDriver:
     # 创建WebDriverWait实例
     webdriver_wait = WebDriverWait(webdriver, max_wait_time)
-    # key 可选值  windownum窗口数量    newwindow是否有新窗口打开    alert是否有警告框打开
-    # 对应可选值：窗口可能的数量        当前窗口的句柄列表            无参数
-    if(key == 'windownum'):
+    # 后面 根据 condition 来决定后面的功能
+    if(condition == 'windownum'):
         return webdriver_wait.until(expected_conditions.number_of_windows_to_be(value))
-    elif(key == 'newwindow'):
+    elif(condition == 'newwindow'):
         return webdriver_wait.until(expected_conditions.new_window_is_opened(value))
-    elif(key == 'alert'):
+    elif(condition == 'alert'):
         return webdriver_wait.until(expected_conditions.alert_is_present())
-    else:
-        raise "传入参数有问题"
 
-# 等待 窗口 title url
-def waitUtilWebdriver(webdriver: WebDriver,key:str,value:str,condition:str,max_wait_time:int=10) -> WebDriver:
-    # 创建WebDriverWait实例
-    webdriver_wait = WebDriverWait(webdriver, max_wait_time)
-    # key 可选值： title url
-    # condition 可选值： equal相等 contain包含 notequal不相等 nocontain不包含
-    if(key == 'title'):
-        # equal
-        if(condition == 'equal'):
-            return webdriver_wait.until(expected_conditions.title_is(value))
-        elif(condition == 'contain'):
-            # contain
-            return webdriver_wait.until(expected_conditions.title_contains(value))
-        elif(condition == 'noequal'):
-            # notequal
-            return webdriver_wait.until(expected_conditions.none_of(expected_conditions.title_is(value)))
-        else:
-            # nocontain
-            return webdriver_wait.until(expected_conditions.none_of(expected_conditions.title_contains(value)))
-    elif(key == 'url'):
-        # equal
-        if(condition == 'equal'):
-            return webdriver_wait.until(expected_conditions.url_to_be(value))
-        elif(condition == 'contain'):
-            # contain
-            return webdriver_wait.until(expected_conditions.url_contains(value))
-        elif(condition == 'noequal'):
-            # notequal
-            return webdriver_wait.until(expected_conditions.url_changes(value))
-        else:
-            # nocontain
-            return webdriver_wait.until(expected_conditions.none_of(expected_conditions.url_contains(value)))
-    else:
-        # 如果传入参数不符合上述，即 抛出错误
-        raise "传入参数有问题"
+    if(condition == 'equal_title'):
+        return webdriver_wait.until(expected_conditions.title_is(condition_value))
+    elif(condition == 'contain_title'):
+        # contain
+        return webdriver_wait.until(expected_conditions.title_contains(condition_value))
+    elif(condition == 'notequal_title'):
+        # notequal
+        return webdriver_wait.until(expected_conditions.none_of(expected_conditions.title_is(condition_value)))
+    elif(condition == 'notcontain_title'):
+        # notcontain
+        return webdriver_wait.until(expected_conditions.none_of(expected_conditions.title_contains(condition_value)))
+    
+    if(condition == 'equal_url'):
+        return webdriver_wait.until(expected_conditions.url_to_be(condition_value))
+    elif(condition == 'contain_url'):
+        # contain
+        return webdriver_wait.until(expected_conditions.url_contains(condition_value))
+    elif(condition == 'notequal_url'):
+        # notequal
+        return webdriver_wait.until(expected_conditions.url_changes(condition_value))
+    elif(condition == 'notcontain_url'):
+        # notcontain
+        return webdriver_wait.until(expected_conditions.none_of(expected_conditions.url_contains(condition_value)))
     
 # 等待元素
 def waitUtilElement(webdriver,selector:str,selector_value,condition:str,condition_value:str = '',max_wait_time:int=10) -> Union[WebElement,List[WebElement]]:
