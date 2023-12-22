@@ -172,42 +172,45 @@ def setElement(webdriver: WebDriver,selector_value: str,modify_type: str,modify_
 # 比如：设置指定元素的属性  该方法默认使用 css selector的方式进行获取元素
 # /表示 前方参数不能以关键字参数进行传参 *后面参数 必须以关键字传参 
 # attrs styles class_list event_list 可传可不传
-def createElement(webdriver: WebDriver,tagname: str,/,*,attrs: List[Dict[str,str]] = [],styles: List[Dict[str,str]] = None,id: str = None,class_list: List[str] = None,event_list: list[Dict[str,str]] = None) -> None:
+def createElement(webdriver: WebDriver,tagname: str,/,*,attrs: Dict[str,str] = None,styles: Dict[str,str] = None,id: str = None,class_list: List[str] = None,event_list: Dict[str,str] = None) -> None:
     create_element_script = f'''
     let el = document.createElement('{tagname}')
     '''
     # 添加属性
     if(attrs):
-        for attr in attrs:
+        for attr_name,attr_value in attrs.items():
             create_element_script = create_element_script + f'''
-            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            el.setAttribute('{ attr_name.strip() }','{ attr_value.strip() }')
             '''
     # 添加id属性
     if(id):
         create_element_script = create_element_script + f'''
-            el.id = '{id}'
+            el.id = '{id.strip()}'
             '''  
     # 添加类名
     if(class_list):
         for class_name in class_list:
             create_element_script = create_element_script + f'''
-            el.classList.add('{class_name}')
+            el.classList.add('{class_name.strip()}')
             '''
     # 添加样式
-    if(class_list):
-        for attr in attrs:
+    if(styles):
+        for style_name,style_value in styles.items():
             create_element_script = create_element_script + f'''
-            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            el.style.{ style_name.strip() } = '{ style_value.strip() }'
             '''
 
     # 为元素添加事件
-    if(class_list):
-        for attr in attrs:
+    if(event_list):
+        for event_name,event_func in event_list.items():
             create_element_script = create_element_script + f'''
-            el.setAttribute('{attr["name"]}','{attr["value"]}')
+            el.addEventListener('{ event_name.strip() }', { event_func.strip() })
             '''
-    # addEventListener
-    excuteJavascript(webdriver,create_element_script)
+    # 返回 构建的元素对象
+    create_element_script = create_element_script + f'''
+            return el
+            '''
+    return excuteJavascript(webdriver,create_element_script)
 
 # 挂载元素（将 元素挂载到 元素容器里）
 def mountElement(webdriver,mount_container_element: WebElement = None,mount_element: WebElement = None):

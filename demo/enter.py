@@ -75,6 +75,108 @@ def handleNotice(webdriver: WebDriver) -> None:
     # 刷新页面
     webdriver.refresh()
 
+# 创建 selenium html 界面 返回创建元素的重要信息元素的选择器字典信息
+def createSeleniumHtmlElement(webdriver: WebDriver) -> Dict[str,str]:
+    # 创建 自动化界面 元素对象
+    selenium_html_styles = {
+        "position":"fixed",
+        "top":"60px",
+        "right":"60px",
+        "width":"240px",
+        "height":"120px",
+        "display":"flex",
+        "flex-direction":"coloumn",
+        "align-items":"space-around",
+        "border":"5px solid black",
+        "border-radius":"5px"
+    }
+    # 创建 自动化界面 table容器
+    selenium_html_element_id = "selenium_html_element"
+    selenium_html_element_selector = f"#{selenium_html_element_id}"
+    selenium_html_element = createElement(webdriver,'div',styles=selenium_html_styles,id=selenium_html_element_id,class_list=["table-responsive"])
+    # 创建 table
+    selenium_html_table_element = createElement(webdriver,'table',class_list=["table","table-borderless","table-hover"])
+    # 定义 table 信息
+    # 定义table  行列数量
+    selenium_html_table_element_row = 3
+    selenium_html_table_element_column = 3
+    # 标题（位于第一行）
+    title_name_selector = None
+    # 课程名称 需要学习的时长 已学时长(位于第二行)
+    course_name_selector = None
+    need_learn_duration_selector = None
+    now_learn_duration_selector = None
+    # 定义一个中间选择器集合
+    middle_selector_temp = []
+    # 添加容器选择器到中间选择器集合
+    middle_selector_temp.append(selenium_html_element_selector)
+    # 显示对应信息（位于第三行）
+    for row in range(1, (selenium_html_table_element_row + 1) ):
+        # 行 类名列表
+        row_class_list = None
+        # 第一行给一个颜色 便于区分
+        if(row == 1): row_class_list = ["table-secondary"]
+        row_element = createElement(web_driver,'tr',class_list=row_class_list)
+        column_element = None
+        # 添加 行选择器
+        middle_selector_temp.append(f'tr:nth-child({row})')
+        # 遍历 每一列
+        for column in selenium_html_table_element_column:
+            # 根据 每一个重要信息所在位置 在每列进行处理时或不需要进行处理的时候 才进行添加选择器
+            # 第一行，只需遍历一次就行 并且 只创建让第一行中 只有一列的标题（居中）
+            if(row == 1):
+                # 该列为 标题列 创建标题列元素
+                column_selecotr = 'title'
+                column_attr = {
+                    "colspan":"2"
+                }
+                column_element = createElement(webdriver,'td',column_attr,class_list=[column_selecotr])
+                # 添加 列选择器（该列为 标题列  设置标题选择器）
+                middle_selector_temp.append(f'td.{column_selecotr}')
+                title_name_selector = ">".join(middle_selector_temp)
+                # 结束该列的循环 进行下一行的列循环
+                break
+            elif(row == 2 and column == 1):
+                # 第二行 第一列 为课程名称标题
+                
+                pass
+            elif(row == 2 and column == 2):
+                # 第二行 第二列 为需要学习的时长标题
+                
+                pass
+            elif(row == 2 and column == 3):
+                # 第二行 第三列 为需要学习的时长标题
+                
+                pass
+            elif(row == 3 and column == 1):
+                # 第三行 第一列 为课程名称内容
+                
+                pass
+            elif(row == 3 and column == 2):
+                # 第三行 第二列 为需要学习的时长标题
+                
+                pass
+            elif(row == 3 and column == 1):
+                # 第三行 第三列 为需要学习的时长标题
+                
+                pass
+            else:
+                # 创建普通元素
+                pass
+        # 清空中间选择器列表 并恢复其初始状态，再开始下一行的选择器
+        middle_selector_temp.clear()
+        middle_selector_temp.append(selenium_html_element_selector)
+            
+
+
+    return {
+        "container": selenium_html_element_selector,
+        "title": title_name_selector,
+        "course_name": course_name_selector,
+        "need_learn_duration": need_learn_duration_selector,
+        "now_learn_duration": now_learn_duration_selector
+    }
+
 # 在 选课界面进行课程的选择
 def chooseCourse(webdriver,course_term,course_name):
     
@@ -321,20 +423,8 @@ if(__name__=='__main__'):
     # 再次对 弹出框 进行确认
     waitUtilWebdriver(web_driver,'alert','')
     popupWindowAccept(web_driver)
-
-    selenium_html_javascript = r'''
-    selenium_html_element = document.createElement("div")
-    selenium_html_element.style = "position:fixed;left:60px;top:60px;width:120px;height:60px;line-height:60px;text-align:center;color:red;background:blue;border:1px solid black;"
-    selenium_html_element.innerText = 'hello'
-    selenium_html_element.id = "newChild"
-    let el = document.querySelector("body")
-    el.append(selenium_html_element)
-    '''
-
-    excuteJavascript(web_driver,selenium_html_javascript)
-    selenium_html_element = waitUtilElement(web_driver,'id','newChild','clickable')
-    time.sleep(3)
-    selenium_html_element.text = 'world'
+    # 创建 selenium 展示界面
+    seleniumHtmlElement_selecotrDict = createSeleniumHtmlElement()
     # selenium_html_element.send_keys('  !')
     # time.sleep(3)
     # selenium_html_element.send_keys('')
