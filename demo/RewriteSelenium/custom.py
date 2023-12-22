@@ -27,6 +27,11 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoSuchFrameException
 from selenium.common.exceptions import NoSuchWindowException
 
+# 自定义类
+from .selenium_element import Selenium_Element
+# 导入 元素标识符
+from . import element_uuid
+
 # 初始化 webdriver
 def initWebDriver(driverPath: str,isMobile: bool = False,deviceName: str = "iPhone 6/7/8 5") -> WebDriver:
     # 默认初始化为 电脑模式，而非手机模式，如需初始化为手机模式 只需将isMobile选项设置为 True
@@ -68,7 +73,7 @@ def initWebDriver(driverPath: str,isMobile: bool = False,deviceName: str = "iPho
 # tag[attribute^="keyword"] 表示：tag标签里面的属性值以keyword关键字开头的所有tag标签元素
 # tag[attribute$="keyword"] 表示：tag标签里面的属性值以keyword关键字结尾的所有tag标签元素
 # tag[attribute1="keyword"][attribute1="keyword"] 表示：tag标签里面的属性1为keyword关键字并且属性2为keyword关键字的tag标签元素
-def getElement(webdriver: WebDriver,selector: str = 'id',selector_value: str = '',is_list:bool = False) -> Union[WebElement,List[WebElement]]:
+def getElement(webdriver: WebDriver,selector: str = 'id',selector_value: str = '',is_list:bool = False) -> Union[WebElement,List[WebElement],None]:
     try:
         # id 选择器（通过id获取到的元素有且只有一个）
         if(selector == 'id'):
@@ -112,6 +117,18 @@ def getElement(webdriver: WebDriver,selector: str = 'id',selector_value: str = '
             webdriver.quit()
         return None
 
+# 通过指定的maskid来获取元素
+def getElementByMaskid(webdriver: WebDriver,*,maskid: str) -> Union[WebElement,None]:
+    try:
+        return webdriver.find_element(By.CSS_SELECTOR, f'[{element_uuid.get_attr_name()}="{maskid}"]')
+    except NoSuchElementException as exec:
+        print(f'except: {exec} \n')
+        excuteJavascript(webdriver,'debugger')
+        print(f'输入exit 可退出程序')
+        while(input()=='exit'):
+            webdriver.quit()
+        return None
+
 # 获取元素内容
 # 元素文本 element.text
 # 输入框的值 element.get_attribute('value')
@@ -125,98 +142,214 @@ def getElement(webdriver: WebDriver,selector: str = 'id',selector_value: str = '
 # element.get_attribute(attribute)
 
 # 对元素内容 进行操作（采用 执行 javascript的方式实现）
-# 比如：设置指定元素的属性  该方法默认使用 css selector的方式进行获取元素
-def setElement(webdriver: WebDriver,selector_value: str,modify_type: str,modify_key: str,modify_value: str) -> None:
-    setelement_script = f'''
-    let el = document.queryselector('{selector_value}')
-    '''
+# 比如：设置指定元素的属性  该方法默认 通过指定的元素 来设置元素信息
+def setElement(webdriver: WebDriver,element: WebElement,modify_type: str,modify_key: str,modify_value: str) -> None:
+    # 定义 设置元素的脚本
+    setelement_script = ''
+    # 根据所给的参数 来设置元素
     if(modify_type == 'attr'):
         setelement_script = setelement_script + f'''
-        el.setAttribute('{modify_key}','{modify_value}')
-        '''
+arguments[0].setAttribute('{modify_key}','{modify_value}')
+'''
     elif(modify_type == 'style'):
         setelement_script = setelement_script + f'''
-        el.style.{modify_key} = {modify_value}
-        '''
+arguments[0].style.{modify_key} = {modify_value}
+'''
     elif(modify_type == 'id'):
         setelement_script = setelement_script + f'''
-        el.id = '{modify_key}'
-        '''
+arguments[0].id = '{modify_key}'
+'''
     elif(modify_type == 'class'):
         if(modify_key == 'remove'):
             setelement_script = setelement_script + f'''
-            el.classList.remove('{modify_value}')
-            '''
+arguments[0].classList.remove('{modify_value}')
+'''
         elif(modify_key == 'add'):
             setelement_script = setelement_script + f'''
-            el.classList.add('{modify_value}')
-            '''
+arguments[0].classList.add('{modify_value}')
+'''
     elif(modify_type == 'element'):
         if(modify_key == 'text'):
             setelement_script = setelement_script + f'''
-            el.innerText = '{modify_value}'
-            '''
+arguments[0].innerText = '{modify_value}'
+'''
         elif(modify_key == 'inner_html'):
             # 元素内部 html 
             setelement_script = setelement_script + f'''
-            el.innerHTML = '{modify_value}'
-            '''
+arguments[0].innerHTML = '{modify_value}'
+'''
         elif(modify_key == 'outer_html'):
             # 元素内部 html 
             setelement_script = setelement_script + f'''
-            el.outerHTML = '{modify_value}'
-            '''
-    excuteJavascript(webdriver,setelement_script)
+arguments[0].outerHTML = '{modify_value}'
+'''
+    # 执行 javascript 代码实现
+    webdriver.execute_script(setelement_script,element)
 
 # 对元素内容 进行操作（采用 执行 javascript的方式实现）
-# 比如：设置指定元素的属性  该方法默认使用 css selector的方式进行获取元素
+# 比如：设置指定元素的属性  该方法默认 通过css selector的方式获取到元素并进行设置元素信息
+def setElementBySelector(webdriver: WebDriver,selector_value: str,modify_type: str,modify_key: str,modify_value: str) -> None:
+    setelement_script = f'''
+let el = document.querySelector('{selector_value}')
+'''
+    if(modify_type == 'attr'):
+        setelement_script = setelement_script + f'''
+el.setAttribute('{modify_key}','{modify_value}')
+'''
+    elif(modify_type == 'style'):
+        setelement_script = setelement_script + f'''
+el.style.{modify_key} = {modify_value}
+'''
+    elif(modify_type == 'id'):
+        setelement_script = setelement_script + f'''
+el.id = '{modify_key}'
+'''
+    elif(modify_type == 'class'):
+        if(modify_key == 'remove'):
+            setelement_script = setelement_script + f'''
+el.classList.remove('{modify_value}')
+'''
+        elif(modify_key == 'add'):
+            setelement_script = setelement_script + f'''
+el.classList.add('{modify_value}')
+'''
+    elif(modify_type == 'element'):
+        if(modify_key == 'text'):
+            setelement_script = setelement_script + f'''
+el.innerText = '{modify_value}'
+'''
+        elif(modify_key == 'inner_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+el.innerHTML = '{modify_value}'
+'''
+        elif(modify_key == 'outer_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+el.outerHTML = '{modify_value}'
+'''
+    # 执行 javascript 代码实现
+    webdriver.execute_script(setelement_script)
+
+# 对元素内容 进行操作（采用 执行 javascript的方式实现）
+# 比如：设置指定元素的属性  该方法默认 通过指定元素的maskid 来获取元素并设置元素信息
+def setElementByMaskid(webdriver: WebDriver,maskid: str,modify_type: str,modify_key: str,modify_value: str) -> Union[Selenium_Element,None]:
+    setelement_script = f'''
+let el = document.querySelector('[{element_uuid.get_attr_name()}="{maskid}"]')
+'''
+    if(modify_type == 'attr'):
+        setelement_script = setelement_script + f'''
+el.setAttribute('{modify_key}','{modify_value}')
+'''
+    elif(modify_type == 'style'):
+        setelement_script = setelement_script + f'''
+el.style.{modify_key} = {modify_value}
+'''
+    elif(modify_type == 'id'):
+        setelement_script = setelement_script + f'''
+el.id = '{modify_key}'
+'''
+    elif(modify_type == 'class'):
+        if(modify_key == 'remove'):
+            setelement_script = setelement_script + f'''
+el.classList.remove('{modify_value}')
+'''
+        elif(modify_key == 'add'):
+            setelement_script = setelement_script + f'''
+el.classList.add('{modify_value}')
+'''
+    elif(modify_type == 'element'):
+        if(modify_key == 'text'):
+            setelement_script = setelement_script + f'''
+el.innerText = '{modify_value}'
+'''
+        elif(modify_key == 'inner_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+el.innerHTML = '{modify_value}'
+'''
+        elif(modify_key == 'outer_html'):
+            # 元素内部 html 
+            setelement_script = setelement_script + f'''
+el.outerHTML = '{modify_value}'
+'''
+    # 执行 javascript 代码实现
+    webdriver.execute_script(setelement_script)
+    # 返回之前的 maskid
+    return maskid
+
+# 创建元素（采用 执行 javascript的方式实现）
+# 默认采用 生成具有对应属性 并值为 maskid的元素的方式来产生 独立标识码的元素
 # /表示 前方参数不能以关键字参数进行传参 *后面参数 必须以关键字传参 
-# attrs styles class_list event_list 可传可不传
-def createElement(webdriver: WebDriver,tagname: str,/,*,attrs: Dict[str,str] = None,styles: Dict[str,str] = None,id: str = None,class_list: List[str] = None,event_list: Dict[str,str] = None) -> None:
+# attrs styles class_list event_list maskid 可传可不传
+# 返回 该创建元素的 唯一独立标识码 uuid 通过 md5 加密得来
+def createElementMount(webdriver: WebDriver,tagname: str,/,*,attrs: Dict[str,str] = None,styles: Dict[str,str] = None,id: str = None,class_list: List[str] = None,event_list: Dict[str,str] = None,mount_container_maskid: str = None) -> Selenium_Element:
     create_element_script = f'''
-    let el = document.createElement('{tagname}')
-    '''
+let el = document.createElement('{tagname}')
+'''
     # 添加属性
     if(attrs):
         for attr_name,attr_value in attrs.items():
             create_element_script = create_element_script + f'''
-            el.setAttribute('{ attr_name.strip() }','{ attr_value.strip() }')
-            '''
+el.setAttribute('{ attr_name.strip() }','{ attr_value.strip() }')
+'''
     # 添加id属性
     if(id):
         create_element_script = create_element_script + f'''
-            el.id = '{id.strip()}'
-            '''  
+el.id = '{id.strip()}'
+'''  
     # 添加类名
     if(class_list):
         for class_name in class_list:
             create_element_script = create_element_script + f'''
-            el.classList.add('{class_name.strip()}')
-            '''
+el.classList.add('{class_name.strip()}')
+'''
     # 添加样式
     if(styles):
         for style_name,style_value in styles.items():
             create_element_script = create_element_script + f'''
-            el.style.{ style_name.strip() } = '{ style_value.strip() }'
-            '''
+el.style.{ style_name.strip() } = '{ style_value.strip() }'
+'''
 
     # 为元素添加事件
     if(event_list):
         for event_name,event_func in event_list.items():
             create_element_script = create_element_script + f'''
-            el.addEventListener('{ event_name.strip() }', { event_func.strip() })
-            '''
-    # 返回 构建的元素对象
+el.addEventListener('{ event_name.strip() }', { event_func.strip() })
+'''
+    # 返回 构建的元素对象的标识符
+    # 获取 uuid加密标识符 并将该标识符放入元素中
+    uuid_attr_name = element_uuid.get_attr_name()
+    uuid_mask = element_uuid.get_mask()
     create_element_script = create_element_script + f'''
-            return el
-            '''
-    return excuteJavascript(webdriver,create_element_script)
+el.setAttribute('{ uuid_attr_name }','{ uuid_mask }')
+'''
+    # 将元素添加到 指定元素中
+    # 如果 元素识别id 为None，则表示 直接挂载至 body中
+    if(not mount_container_maskid):
+        create_element_script = create_element_script + f'''
+let body_element = document.querySelector('body')
+body_element.append(el)
+'''  
+    else:
+        create_element_script = create_element_script + f'''
+let container_element = document.querySelector('[{uuid_attr_name}="{mount_container_maskid}"]')
+container_element.append(el)
+'''  
+    print(f'339 create_element_script：{create_element_script}')
+    # 执行 javascripit 代码 实现创建元素的功能
+    webdriver.execute_script(create_element_script)
+    # 返回该元素的识别id
+    return uuid_mask
 
 # 挂载元素（将 元素挂载到 元素容器里）
-def mountElement(webdriver,mount_container_element: WebElement = None,mount_element: WebElement = None):
+def mountElement(webdriver,mount_container_element: WebElement = None,mount_element: WebElement = None) -> None:
     if(mount_element and mount_container_element):
-        webdriver.execute_script('arguments[0].append(arguments[1])',mount_container_element,mount_element)
-
+        mount_script = '''
+arguments[0].append(arguments[1])
+'''
+        # 执行 javscript 代码实现
+        webdriver.execute_script(mount_script,mount_container_element,mount_element)
 
 # 对输入框进行操作
 # element.send_keys() 以追加的方式向元素 添加内容
@@ -299,11 +432,8 @@ def screenshotSaveAsCustomPath(webdriver: WebDriver,customPath: str) -> bool:
     return webdriver.get_screenshot_as_file(customPath)
 
 # 执行 javascript 并返回其结果
-def excuteJavascript(webdriver: WebDriver,javaScript: str,arg: Union[WebElement,str] = None) -> Union[int,str,bool]:
-    if(arg):
-        return webdriver.execute_script(javaScript.replace(r'${0}',r'arguments[0]'), arg)
-    else:
-        return webdriver.execute_script(javaScript)
+def excuteJavascript(webdriver: WebDriver,javaScript: str) -> Union[int,str,bool]:
+    return webdriver.execute_script(javaScript)
 
 # 通过 执行 javascript代码实现
 # 获取 窗口缩放比例

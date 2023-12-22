@@ -31,13 +31,13 @@ def loginPage(webdriver: WebDriver) -> None:
     # 开始登陆
     # 获取 用户名 输入框元素
     username_id = r'txtUserName'
-    usernameInput_element = getElement(webdriver,'id',username_id)
+    usernameInput_element = waitUtilElement(webdriver,'id',username_id,'in_dom')
     # 获取 密码 输入框元素
     password_id = r'txtPwd'
-    passwordInput_element = getElement(webdriver,'id',password_id)
+    passwordInput_element = waitUtilElement(webdriver,'id',password_id,'in_dom')
     # 获取 登陆按钮 元素
     loginBtn_id = r'btnSign'
-    loginBtn_element = getElement(webdriver,'id',loginBtn_id)
+    loginBtn_element = waitUtilElement(webdriver,'id',loginBtn_id,'in_dom')
     # 输入内容 到输入框
     # 输入用户名
     username = r'430423200009139053'
@@ -76,105 +76,122 @@ def handleNotice(webdriver: WebDriver) -> None:
     webdriver.refresh()
 
 # 创建 selenium html 界面 返回创建元素的重要信息元素的选择器字典信息
-def createSeleniumHtmlElement(webdriver: WebDriver) -> Dict[str,str]:
+def createSeleniumHtmlElementMount(webdriver: WebDriver) -> Dict[str,str]:
     # 创建 自动化界面 元素对象
-    selenium_html_styles = {
+    container_styles = {
         "position":"fixed",
         "top":"60px",
         "right":"60px",
         "width":"240px",
         "height":"120px",
+        "background":"lightgray",
+        "opcity":"0.9",
         "display":"flex",
-        "flex-direction":"coloumn",
-        "align-items":"space-around",
-        "border":"5px solid black",
-        "border-radius":"5px"
+        "flexDirection":"column",
+        "justifyContent": "flex-start",
+        "alignItems":"flex-start"
     }
-    # 创建 自动化界面 table容器
-    selenium_html_element_id = "selenium_html_element"
-    selenium_html_element_selector = f"#{selenium_html_element_id}"
-    selenium_html_element = createElement(webdriver,'div',styles=selenium_html_styles,id=selenium_html_element_id,class_list=["table-responsive"])
-    # 创建 table
-    selenium_html_table_element = createElement(webdriver,'table',class_list=["table","table-borderless","table-hover"])
-    # 定义 table 信息
-    # 定义table  行列数量
-    selenium_html_table_element_row = 3
-    selenium_html_table_element_column = 3
+    
+    # 创建 自动化界面 容器
+    selenium_html_element_maskid = createElementMount(webdriver,'div',styles=container_styles)
+    # 定义 界面 信息
+    # 定义 界面  行列数量
+    selenium_html_element_row = 3
+    selenium_html_element_column = 3
     # 标题（位于第一行）
-    title_name_selector = None
+    title_name_maskid = None
     # 课程名称 需要学习的时长 已学时长(位于第二行)
-    course_name_selector = None
-    need_learn_duration_selector = None
-    now_learn_duration_selector = None
-    # 定义一个中间选择器集合
-    middle_selector_temp = []
-    # 添加容器选择器到中间选择器集合
-    middle_selector_temp.append(selenium_html_element_selector)
-    # 显示对应信息（位于第三行）
-    for row in range(1, (selenium_html_table_element_row + 1) ):
-        # 行 类名列表
-        row_class_list = None
-        # 第一行给一个颜色 便于区分
-        if(row == 1): row_class_list = ["table-secondary"]
-        row_element = createElement(web_driver,'tr',class_list=row_class_list)
-        column_element = None
-        # 添加 行选择器
-        middle_selector_temp.append(f'tr:nth-child({row})')
+    course_name_maskid = None
+    need_learn_duration_maskid = None
+    now_learn_duration_maskid = None
+    # 行通用样式
+    row_styles = {
+        "width":"100%",
+        "height":f"{(1/selenium_html_element_row) * 100}%",
+        "display":"flex",
+        "justifyContent": "space-around",
+        "alignItems":"center"
+    }
+    # 遍历 生成元素
+    for row in range(1, (selenium_html_element_row + 1) ):
+        # 创建 div 元素
+        row_element_maskid = createElementMount(web_driver,'div',mount_container_maskid=selenium_html_element_maskid,styles=row_styles)
+        column_element_maskid = None
+        
         # 遍历 每一列
-        for column in selenium_html_table_element_column:
+        for column in range(1,(selenium_html_element_column + 1) ):
+            # 每列样式
+            col_styles = {
+                "width":f"{(1/selenium_html_element_column) * 100 }%",
+                "height": "100%",
+                "display":"flex",
+                "justifyContent": "center",
+                "alignItems":"center"
+            }
             # 根据 每一个重要信息所在位置 在每列进行处理时或不需要进行处理的时候 才进行添加选择器
             # 第一行，只需遍历一次就行 并且 只创建让第一行中 只有一列的标题（居中）
-            if(row == 1):
+            if(row == 1 and column == 1):
                 # 该列为 标题列 创建标题列元素
-                column_selecotr = 'title'
-                column_attr = {
-                    "colspan":"2"
-                }
-                column_element = createElement(webdriver,'td',column_attr,class_list=[column_selecotr])
-                # 添加 列选择器（该列为 标题列  设置标题选择器）
-                middle_selector_temp.append(f'td.{column_selecotr}')
-                title_name_selector = ">".join(middle_selector_temp)
-                # 结束该列的循环 进行下一行的列循环
+                # 重置 该列的宽度为 100%
+                col_styles["width"] = "100%"
+                title_name_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                column_element_maskid = setElementByMaskid(webdriver,title_name_maskid,'element','text','Selenium 自动化界面')
                 break
+
             elif(row == 2 and column == 1):
                 # 第二行 第一列 为课程名称标题
+                # 创建列元素
+                column_element_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                column_element_maskid = setElementByMaskid(webdriver,column_element_maskid,'element','text','课程标题')
                 
-                pass
             elif(row == 2 and column == 2):
                 # 第二行 第二列 为需要学习的时长标题
+                # 创建列元素
+                column_element_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                column_element_maskid = setElementByMaskid(webdriver,column_element_maskid,'element','text','总时长')
                 
-                pass
             elif(row == 2 and column == 3):
                 # 第二行 第三列 为需要学习的时长标题
+                # 创建列元素
+                column_element_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                column_element_maskid = setElementByMaskid(webdriver,column_element_maskid,'element','text','已学时长')
                 
-                pass
             elif(row == 3 and column == 1):
-                # 第三行 第一列 为课程名称内容
+                # 第三行 第一列 为课程名称
+                # 该列为 课程标题内容列 创建课程标题内容列元素
+                course_name_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                course_name_maskid = setElementByMaskid(webdriver,course_name_maskid,'element','text','暂未课程')
                 
-                pass
             elif(row == 3 and column == 2):
-                # 第三行 第二列 为需要学习的时长标题
+                # 第三行 第二列 为总学习时长
+                # 该列为 总学习时长内容列 创建总学习时长内容列元素
+                need_learn_duration_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                need_learn_duration_maskid = setElementByMaskid(webdriver,need_learn_duration_maskid,'element','text','0')
                 
-                pass
-            elif(row == 3 and column == 1):
+            elif(row == 3 and column == 3):
                 # 第三行 第三列 为需要学习的时长标题
-                
-                pass
+                # 该列为 总学习时长内容列 创建总学习时长内容列元素
+                now_learn_duration_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                # 设置元素内容
+                now_learn_duration_maskid = setElementByMaskid(webdriver,now_learn_duration_maskid,'element','text','0')
+
             else:
                 # 创建普通元素
-                pass
-        # 清空中间选择器列表 并恢复其初始状态，再开始下一行的选择器
-        middle_selector_temp.clear()
-        middle_selector_temp.append(selenium_html_element_selector)
+                column_element_maskid = createElementMount(webdriver,'div',mount_container_maskid=row_element_maskid,styles=col_styles)
+                
             
-
-
     return {
-        "container": selenium_html_element_selector,
-        "title": title_name_selector,
-        "course_name": course_name_selector,
-        "need_learn_duration": need_learn_duration_selector,
-        "now_learn_duration": now_learn_duration_selector
+        "container": selenium_html_element_maskid,
+        "title": title_name_maskid,
+        "course_name": course_name_maskid,
+        "need_learn_duration": need_learn_duration_maskid,
+        "now_learn_duration": now_learn_duration_maskid
     }
 
 # 在 选课界面进行课程的选择
@@ -424,7 +441,8 @@ if(__name__=='__main__'):
     waitUtilWebdriver(web_driver,'alert','')
     popupWindowAccept(web_driver)
     # 创建 selenium 展示界面
-    seleniumHtmlElement_selecotrDict = createSeleniumHtmlElement()
+    selenium_elements_maskid = createSeleniumHtmlElementMount(web_driver)
+    print(selenium_elements_maskid)
     # selenium_html_element.send_keys('  !')
     # time.sleep(3)
     # selenium_html_element.send_keys('')
