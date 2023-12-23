@@ -141,6 +141,90 @@ def getElementByMaskid(webdriver: WebDriver,*,maskid: str) -> Union[WebElement,N
 # 等等
 # element.get_attribute(attribute)
 
+# 对元素内容 进行获取（采用 执行 javascript的方式实现）
+# 比如：获取指定元素的属性等等  该方法默认 通过css selector的方式获取到元素
+def getElementContent(webdriver: WebDriver,element: WebElement,get_type: str,get_key: str = None) -> None:
+    # 提前声明 获取元素的脚本
+    getelement_script = ''
+    # 后面 根据所给参数实现相应获取元素 内容的功能
+    if(get_type == 'attr'):
+        getelement_script = getelement_script + f'''
+return arguments[0].attribute('{get_key}')
+'''
+    elif(get_type == 'style'):
+        getelement_script = getelement_script + f'''
+return arguments[0].style.{get_key}
+'''
+    elif(get_type == 'id'):
+        getelement_script = getelement_script + f'''
+return arguments[0].id
+'''
+    elif(get_type == 'class'):
+        getelement_script = getelement_script + f'''
+return arguments[0].classList
+'''
+    elif(get_type == 'element'):
+        if(get_key == 'text'):
+            getelement_script = getelement_script + f'''
+return arguments[0].innerText
+'''
+        elif(get_key == 'inner_html'):
+            # 元素内部 html 
+            getelement_script = getelement_script + f'''
+return arguments[0].innerHTML
+'''
+        elif(get_key == 'outer_html'):
+            # 元素内部 html 
+            getelement_script = getelement_script + f'''
+return arguments[0].outerHTML
+'''
+    # 执行 javascript 代码实现
+    return webdriver.execute_script(getelement_script,element)
+
+# 对元素内容 进行获取（采用 执行 javascript的方式实现）
+# 比如：获取指定元素的属性等等  该方法默认 通过css selector的方式获取到元素
+def getElementContentBySelector(webdriver: WebDriver,selector_value: str,get_type: str,get_key: str = None) -> None:
+    # 提前声明 获取元素的脚本
+    getelement_script = ''
+    # 后面 根据所给参数实现相应获取元素 内容的功能
+    getelement_script = f'''
+let el = document.querySelector('{selector_value}')
+'''
+    if(get_type == 'attr'):
+        getelement_script = getelement_script + f'''
+return el.attribute('{get_key}')
+'''
+    elif(get_type == 'style'):
+        getelement_script = getelement_script + f'''
+return el.style.{get_key}
+'''
+    elif(get_type == 'id'):
+        getelement_script = getelement_script + f'''
+return el.id
+'''
+    elif(get_type == 'class'):
+        getelement_script = getelement_script + f'''
+return el.classList
+'''
+    elif(get_type == 'element'):
+        if(get_key == 'text'):
+            getelement_script = getelement_script + f'''
+return el.innerText
+'''
+        elif(get_key == 'inner_html'):
+            # 元素内部 html 
+            getelement_script = getelement_script + f'''
+return el.innerHTML
+'''
+        elif(get_key == 'outer_html'):
+            # 元素内部 html 
+            getelement_script = getelement_script + f'''
+return el.outerHTML
+'''
+    # 执行 javascript 代码实现
+    return webdriver.execute_script(getelement_script)
+
+
 # 对元素内容 进行操作（采用 执行 javascript的方式实现）
 # 比如：设置指定元素的属性  该方法默认 通过指定的元素 来设置元素信息
 def setElement(webdriver: WebDriver,element: WebElement,modify_type: str,modify_key: str,modify_value: str) -> None:
@@ -217,6 +301,7 @@ el.classList.add('{modify_value}')
         if(modify_key == 'text'):
             setelement_script = setelement_script + f'''
 el.innerText = '{modify_value}'
+
 '''
         elif(modify_key == 'inner_html'):
             # 元素内部 html 
@@ -311,12 +396,32 @@ el.classList.add('{class_name.strip()}')
 el.style.{ style_name.strip() } = '{ style_value.strip() }'
 '''
 
-    # 为元素添加事件
+    # 为元素添加事件(直接将其方法的实现 写入body下 为body创建新的 script标签)
     if(event_list):
-        for event_name,event_func in event_list.items():
-            create_element_script = create_element_script + f'''
-el.addEventListener('{ event_name.strip() }', { event_func.strip() })
+        # 创建 body 元素对象，以免多次创建
+        create_element_script = create_element_script + r'''
+let bodyelement_tomountelement = document.querySelector('body')
+let script_element = null
 '''
+        for event,event_func in event_list.items():
+            # event "事件名称 方法名称"
+            event_name = event.strip().split(' ')[0]
+            event_func_name = event.strip().split(' ')[1]
+            # 对 方法进行 压缩（将多余空格都去掉）
+            event_func = "".join(map(lambda x: x.strip(),event_func.split('\n')))
+            # 添加换行符，以便区分其他方法
+            # 将事件添加到创建脚本中
+            create_element_script = create_element_script + f'''
+// 创建该标签 并挂载到 body中
+script_element = document.createElement('script')
+bodyelement_tomountelement.append(script_element)
+script_element.type="text/javascript"
+// 将方法内容写入 script中
+script_element.innerText = script_element.innerText + '{event_func}'
+// 将 事件名称属性设置到元素上
+el.setAttribute('{ event_name }', '{ event_func_name }')
+'''
+
     # 返回 构建的元素对象的标识符
     # 获取 uuid加密标识符 并将该标识符放入元素中
     uuid_attr_name = element_uuid.get_attr_name()
@@ -336,7 +441,7 @@ body_element.append(el)
 let container_element = document.querySelector('[{uuid_attr_name}="{mount_container_maskid}"]')
 container_element.append(el)
 '''  
-    print(f'339 create_element_script：{create_element_script}')
+    # print(f'359 create_element_script：{create_element_script}')
     # 执行 javascripit 代码 实现创建元素的功能
     webdriver.execute_script(create_element_script)
     # 返回该元素的识别id
@@ -350,6 +455,7 @@ arguments[0].append(arguments[1])
 '''
         # 执行 javscript 代码实现
         webdriver.execute_script(mount_script,mount_container_element,mount_element)
+
 
 # 对输入框进行操作
 # element.send_keys() 以追加的方式向元素 添加内容
@@ -368,9 +474,13 @@ def switchToDefalutHtml(webdriver: WebDriver) -> None:
     
 # 切换至 iframe框架中引入的html文件中(即：切换到iframe中)
 # 使用 css selector 来获取iframe元素 来实现切换
-def switchToIframeHtml(webdriver: WebDriver,css_selector: str) -> None:
+def switchToIframeHtmlBySelector(webdriver: WebDriver,css_selector: str) -> None:
     webdriver.switch_to.frame(webdriver.find_elements(By.CSS_SELECTOR, css_selector))
 
+# 切换至 iframe框架中引入的html文件中(即：切换到iframe中)
+# 使用 iframe元素 来实现切换
+def switchToIframeHtmlByElement(webdriver: WebDriver,element: WebElement) -> None:
+    webdriver.switch_to.frame(element)
 
 
 # 窗口
@@ -432,8 +542,17 @@ def screenshotSaveAsCustomPath(webdriver: WebDriver,customPath: str) -> bool:
     return webdriver.get_screenshot_as_file(customPath)
 
 # 执行 javascript 并返回其结果
-def excuteJavascript(webdriver: WebDriver,javaScript: str) -> Union[int,str,bool]:
+def excuteJavascript(webdriver: WebDriver,javaScript: str) -> Union[int,str,bool,None]:
     return webdriver.execute_script(javaScript)
+
+# 指定特定元素 执行特定的javascript代码( 书写javascript代码时 arguments[0] 可代替 传入的元素进行书写 )
+def excuteJavscriptByElement(webdriver: WebDriver,javaScript: str,element: WebElement) -> Union[int,str,bool,None]:
+    return webdriver.execute_script(javaScript,element)
+
+# 指定多个特定元素 执行特定的javascript代码( 书写javascript代码时 arguments[i] 可代替 传入的元素进行书写 其中i为传入的元素个数的索引 以0开头)
+def excuteJavscriptByElements(webdriver: WebDriver,javaScript: str,*element: WebElement) -> Union[int,str,bool,None]:
+    return webdriver.execute_script(javaScript,*element)
+
 
 # 通过 执行 javascript代码实现
 # 获取 窗口缩放比例
@@ -448,6 +567,22 @@ def setWindowZoomRatio(webdriver: WebDriver,ratio: float = 1) -> None:
     if(zoomBeforeValue != ratio):
         zoomScript = f'document.body.style.zoom = {ratio}'
         webdriver.execute_script(zoomScript)
+
+# 通过执行 javascript 来点击元素（根据 已有的 元素）
+def clickByJavascriptByElement(webdriver: WebDriver,element: WebElement) -> None:
+    webdriver.execute_script('arguments[0].click()',element)
+
+# 通过执行 javascript 来点击元素（根据 css selector）
+def clickByJavascriptByCSSselector(webdriver: WebDriver,css_selector: str) -> None:
+    webdriver.execute_script('arguments[0].click()',webdriver.find_element(By.CSS_SELECTOR, css_selector))
+
+# 通过执行 javascript 来让元素滚动到视图可见区域（根据 已有的 元素）
+def scrollIntoViewByElement(webdriver: WebDriver,element: WebElement) -> None:
+    webdriver.execute_script('arguments[0].scrollIntoView()',element)
+
+# 通过执行 javascript 来让元素滚动到视图可见区域（根据 css selector）
+def scrollIntoViewByCSSselector(webdriver: WebDriver,css_selector: str) -> None:
+    webdriver.execute_script('arguments[0].scrollIntoView()',webdriver.find_elements(By.CSS_SELECTOR, css_selector))
 
 # 弹出窗口(pop up 弹出) 的确认与取消（可以是 alert的确认和获取内容  confirm的确认和取消和获取内容）
 # 弹窗确认
@@ -466,14 +601,14 @@ def inputPopupWindowContent(webdriver: WebDriver,content: str) -> None:
 
 # 等待 webdriver 的某个条件符合时
 # 等待 window alert 、窗口 title url
-def waitUtilWebdriver(webdriver: WebDriver,condition:str,condition_value:str,max_wait_time:int=10) -> WebDriver:
+def waitUtilWebdriver(webdriver: WebDriver,condition:str,condition_value:str='',max_wait_time:int=10) -> WebDriver:
     # 创建WebDriverWait实例
     webdriver_wait = WebDriverWait(webdriver, max_wait_time)
     # 后面 根据 condition 来决定后面的功能
     if(condition == 'windownum'):
-        return webdriver_wait.until(expected_conditions.number_of_windows_to_be(value))
+        return webdriver_wait.until(expected_conditions.number_of_windows_to_be(condition_value))
     elif(condition == 'newwindow'):
-        return webdriver_wait.until(expected_conditions.new_window_is_opened(value))
+        return webdriver_wait.until(expected_conditions.new_window_is_opened(condition_value))
     elif(condition == 'alert'):
         return webdriver_wait.until(expected_conditions.alert_is_present())
 
@@ -518,7 +653,7 @@ def waitUtilElement(webdriver,selector:str,selector_value,condition:str,conditio
     elif(selector == 'xpath'):
         locator = (By.XPATH,selector_value)
     # 然后，根据condition来确定方法的功能
-
+    print('wait',selector_value)
     # 元素是否在dom
     if(condition == 'in_dom'):
         # 元素在dom中  in_dom
